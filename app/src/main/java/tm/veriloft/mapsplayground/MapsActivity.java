@@ -18,7 +18,9 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
 import com.loopj.android.http.AsyncHttpClient;
 import com.loopj.android.http.JsonHttpResponseHandler;
@@ -36,17 +38,19 @@ public class MapsActivity extends AppCompatActivity {
 
     private GoogleMap mMap; // Might be null if Google Play services APK is not available.
 
-    private int drawnRoutesCount = 1;
+    private ArrayList<Polyline> drawnRoutes = new ArrayList<>(); //all drawn routes in the map, for removing after
+    private ArrayList<Marker> addedMarkers = new ArrayList<>(); //all markers in the map, for removing after
 
-    private final String SERVER = "http://router.project-osrm.org/viaroute";
-    private final int SERVER_PORT = 80;
+    private final String SERVER = "http://178.62.47.141/viaroute";
+    private final int SERVER_PORT = 81;
 
-    private final String[] drawOptionsStrings = {"Focus to start point after draw", "Add end of point marker", "Add requested point marker"};
-    private final boolean[] drawOptionsValues = {false, true, true};
+    private final String[] drawOptionsStrings = {"Focus to start point after draw", "Add end of point marker", "Add requested point marker", "Markers for returned points"};
+    private final boolean[] drawOptionsValues = {false, true, true, false};
 
     private boolean focusAfterRouteDraw = drawOptionsValues[0];
     private boolean endMarkerRouteDraw = drawOptionsValues[1];
     private boolean requestedPointMarkerRouteDraw = drawOptionsValues[2];
+    private boolean returnedPointsMarkers = drawOptionsValues[3];
 
     private final String[] mapTypeStrings = {"Normal", "Hybrid", "Satellite", "Terrain"};
     private int lastMapType = 1;
@@ -77,6 +81,19 @@ public class MapsActivity extends AppCompatActivity {
     public boolean onOptionsItemSelected( MenuItem item ) {
 
         switch (item.getItemId()) {
+            case R.id.map_routes_clear:
+
+                //clear them from map
+                for(Polyline drawnRoute : drawnRoutes)
+                    drawnRoute.remove();
+                for(Marker marker : addedMarkers)
+                    marker.remove();
+
+                //clear array
+                drawnRoutes.clear();
+                addedMarkers.clear();
+
+                break;
             case R.id.map_type:
                 AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(MapsActivity.this);
                 alertDialogBuilder.setTitle("Choose map type");
@@ -187,7 +204,7 @@ public class MapsActivity extends AppCompatActivity {
             }
         });
 
-        focusTo(new LatLng(37.945958662069174, 58.38305085897446), 13);
+        focusTo(new LatLng(37.945958662069174, 58.38305085897446), 13); // focus to ashgabat
     }
 
     private void focusTo( LatLng latLng, float zoomLevel ) {
@@ -199,6 +216,7 @@ public class MapsActivity extends AppCompatActivity {
         focusAfterRouteDraw = drawOptionsValues[0];
         endMarkerRouteDraw = drawOptionsValues[1];
         requestedPointMarkerRouteDraw = drawOptionsValues[2];
+        returnedPointsMarkers = drawOptionsValues[3];
     }
 
     private void fetchAndDrawRoute( final LatLng... latLngs ) {
@@ -221,8 +239,10 @@ public class MapsActivity extends AppCompatActivity {
 
         final RequestParams requestParams = new RequestParams();
 
-        for(LatLng latLng : latLngs)
+        for(LatLng latLng : latLngs) {
             requestParams.add("loc", latLng.latitude + "," + latLng.longitude);
+            l("Added latLng to request, " + latLng);
+        }
 
         asyncHttpClient.get(this, SERVER, requestParams, new JsonHttpResponseHandler() {
             @Override
@@ -236,26 +256,32 @@ public class MapsActivity extends AppCompatActivity {
                     ArrayList<LatLng> route = MapUtils.decodePoly(response.getString("route_geometry"));
                     PolylineOptions routeOptions = new PolylineOptions();
 
-                    for(int i = 0; i < route.size(); i++)
+                    for(int i = 0; i < route.size(); i++) {
                         routeOptions.add(route.get(i));
+                        l("Returned point " + route.get(i));
+                        if (returnedPointsMarkers)
+                            addedMarkers.add(mMap.addMarker(new MarkerOptions().position(route.get(i))
+                                .title("#" + i + " point of #" + drawnRoutes.size())));
+                    }
 
                     routeOptions.width(ROUTE_WIDTH).color(ROUTE_COLOR);
-                    mMap.addPolyline(routeOptions);
+                    drawnRoutes.add(mMap.addPolyline(routeOptions));
 
                     List<LatLng> points = routeOptions.getPoints();
 
                     if (focusAfterRouteDraw)
                         focusTo(points.get(0), 13);
 
-                    if (endMarkerRouteDraw)
-                        mMap.addMarker(new MarkerOptions().position(route.get(route.size() - 1))
-                            .title("End of #" + drawnRoutesCount));
+                    if (endMarkerRouteDraw) {
+                        LatLng trueEndPoint = MapUtils.findTrueEndPoint(latLngs[latLngs.length - 1], route.get(0), route.get(route.size() - 1));
+                        addedMarkers.add(mMap.addMarker(new MarkerOptions().position(trueEndPoint)
+                            .title("End of #" + drawnRoutes.size())));
+                    }
 
                     if (requestedPointMarkerRouteDraw)
-                        mMap.addMarker(new MarkerOptions().position(latLngs[latLngs.length - 1])
-                            .title("Requested point of #" + drawnRoutesCount));
+                        addedMarkers.add(mMap.addMarker(new MarkerOptions().position(latLngs[latLngs.length - 1])
+                            .title("Requested point of #" + drawnRoutes.size())));
 
-                    drawnRoutesCount++;
                 } catch (JSONException exception) {
                     exception.printStackTrace();
                     showCenteredToast("Exception while parsing! Error: " + exception.getLocalizedMessage());

@@ -2,7 +2,13 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
       xmlns:app="http://schemas.android.com/apk/res-auto">
     <item
+        android:id="@+id/map.routes.clear"
+        android:icon="@drawable/ic_clear_all"
+        app:showAsAction="ifRoom"
+        android:title="Clear drawn routes"/>
+    <item
         android:id="@+id/map.type"
-        android:title="Map type"
-        app:showAsAction="never"/>
+        android:icon="@drawable/ic_layers"
+        app:showAsAction="ifRoom"
+        android:title="Map type"/>
 </menu>

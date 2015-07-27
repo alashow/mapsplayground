@@ -1,5 +1,7 @@
 package tm.veriloft.mapsplayground;
 
+import android.location.Location;
+
 import com.google.android.gms.maps.model.LatLng;
 
 import java.util.ArrayList;
@@ -58,4 +60,22 @@ public class MapUtils {
         return poly;
     }
 
+    /**
+     * Sometimes OSRM api returns reversed points.
+     * So find true end point by finding nearest point to requestedEndPoint between first and last items of returned route points array
+     *
+     * @param requestEndPoint    requested end point to api
+     * @param returnedPointFirst first item from returned array
+     * @param returnedPointLast  last item from returned array
+     * @return true end point, from given returnedPointFirst or returnedPointLast
+     */
+    public static LatLng findTrueEndPoint( LatLng requestEndPoint, LatLng returnedPointFirst, LatLng returnedPointLast ) {
+        float[] resultsFirst = new float[1];
+        Location.distanceBetween(requestEndPoint.latitude, requestEndPoint.longitude, returnedPointFirst.latitude, returnedPointFirst.longitude, resultsFirst);
+
+        float[] resultsSecond = new float[1];
+        Location.distanceBetween(requestEndPoint.latitude, requestEndPoint.longitude, returnedPointLast.latitude, returnedPointLast.longitude, resultsSecond);
+
+        return (resultsFirst[0] > resultsSecond[0]) ? returnedPointLast : returnedPointFirst;
+    }
 }
