@@ -1,3 +1,20 @@
+/*
+ * Copyright 2015. Alashov Berkeli
+ *
+ *
+ *    Licensed under the Apache License, Version 2.0 (the "License");
+ *    you may not use this file except in compliance with the License.
+ *    You may obtain a copy of the License at
+ *
+ *       http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *    Unless required by applicable law or agreed to in writing, software
+ *    distributed under the License is distributed on an "AS IS" BASIS,
+ *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *    See the License for the specific language governing permissions and
+ *    limitations under the License.
+ */
+
 package tm.veriloft.mapsplayground;
 
 import android.app.AlertDialog;
@@ -41,8 +58,8 @@ public class MapsActivity extends AppCompatActivity {
     private ArrayList<Polyline> drawnRoutes = new ArrayList<>(); //all drawn routes in the map, for removing after
     private ArrayList<Marker> addedMarkers = new ArrayList<>(); //all markers in the map, for removing after
 
-    private final String SERVER = "http://178.62.47.141/viaroute";
-    private final int SERVER_PORT = 81;
+    private final String SERVER = "http://router.project-osrm.org/viaroute";
+    private final int SERVER_PORT = 80;
 
     private final String[] drawOptionsStrings = {"Focus to start point after draw", "Add end of point marker", "Add requested point marker", "Markers for returned points"};
     private final boolean[] drawOptionsValues = {false, true, true, false};
